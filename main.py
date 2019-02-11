@@ -1,5 +1,26 @@
 # Experimenting with shapes and if they intersect with each other.
 # 1. https://en.wikipedia.org/wiki/Gilbert%E2%80%93Johnson%E2%80%93Keerthi_distance_algorithm
+#    - https://youtu.be/Qupqu1xe7Io
+#
+#  The GJK Algorithm:
+#   -- Where:
+#       -> Q - Simplex Set - list of points - in this case 1 to 4
+#       -> d - direction
+#       -> C - shape (1, 2, or 3 dimensions)
+#       -> P - point
+#       -> CH() - Convex Hull()
+#       -> Sc() - Subset of Shape
+#       -> V = Most extreme point of C in a particular direction
+# 1. Initialize the simplex set Q with up to d+1 points from C (in d dimensions)
+# 2. Compute point P of minimum norm in CH(Q)
+# 3. If P is the origin, exit; return 0
+# 4. Reduce Q to the smallest subset Q’ of Q, such that P in CH(Q’)
+# 5. Let V=Sc(–P) be a supporting point in direction –P
+# 6. If V no more extreme in direction –P than P itself, exit; return ||P||
+# 7. Add V to Q. Go to step 2
+#
+# C implimentation of GJK: https://github.com/ElsevierSoftwareX/SOFTX_2018_38/blob/master/lib/src/openGJK.c
+# Python implimentation of GJK: https://github.com/Wopple/GJK/blob/master/python/gjk.py
 #
 
 
@@ -26,13 +47,25 @@ class Vec3:
     def x(self):
         return self._x
 
+    @x.setter
+    def x(self, rhs):
+        self._x = rhs
+
     @property
     def y(self):
         return self._y
 
+    @y.setter
+    def y(self, rhs):
+        self._y = rhs
+
     @property
     def z(self):
         return self._z
+
+    @z.setter
+    def z(self, rhs):
+        self._z = rhs
 
 
 class Cube:
@@ -66,12 +99,23 @@ class Cube:
 
 
 def dot_product(a, b):
+    """Calculate the magnitude of one vector multiplied by another."""
     return a.x * b.x + a.y * b.y + a.z * b.z
+
+
+def cross_product(a, b):
+    """Calculate a vector that is at right angles to two points passed in."""
+    return Vec3(
+        a.y * b.z - a.z * b.y,  # i
+        a.z * b.x - a.x * b.z,  # j
+        a.x * b.y - a.y * b.x,  # k
+    )
 
 
 def support(shape, direction):
     """
     Support(shape, d), which returns the point on shape which has the highest dot product with d.
+    - This would be teh most 'extreme' or furthest point going in the direction passed in.
     :param shape:
     :param direction:
     :return:
@@ -79,7 +123,7 @@ def support(shape, direction):
     furthest_in_direction = None
     result = -1_000_000_000
     for point in shape.points:
-        product = point.x * direction.x + point.y * direction.y + point.z * direction.z
+        product = dot_product(point, direction)
         if product > result:
             result = product
             furthest_in_direction = point
@@ -87,8 +131,39 @@ def support(shape, direction):
     return furthest_in_direction
 
 
-def NearestSimplex(s):
-    pass
+def nearest_simplex(simplex, direction):
+    """
+    A simplex is an array of points that may be represented as a:
+    - 1 point = vert
+    - 2 points = line
+    - 3 points = triangle
+    - 4 points = tetrahedron
+
+    :param simplex: May contain 2, 3, or 4 points.
+    :param direction:
+    :return: updated points, updated direction and a bool of True if  shape contains origin.
+    """
+
+    # __ Two Point Simplex
+    if len(simplex) == 2:
+        b = simplex[0]
+        a = simplex[1]
+        ao = -a
+        ab = b - a
+
+        if dot_product(ab, ao) >= 0:
+            direction = cross_product(ab, ao)
+
+        else:
+            simplex.pop(0)
+            direction = ao
+
+    # __ Three point simplex
+    else:
+        # need to impliment
+        pass
+
+    return simplex, direction, False
 
 
 def gjk_intersection(p, q, initial_axis):
@@ -104,24 +179,25 @@ def gjk_intersection(p, q, initial_axis):
     # d -> Vec3 - Direction
 
     a = support(p, initial_axis) - support(q, -initial_axis)
-    s = [a]
-    d = -a
+    points = [a]
+    direction = -a
 
     while True:
-        a = support(p, d) - support(q, -d)
+        a = support(p, direction) - support(q, -direction)
 
-        if dot_product(a, d) < 0:
-            # reject - we are already moving away from origin.
+        if dot_product(a, direction) < 0:
+            # reject - we tried to get the furthest point -- and the furthest point is not past origin -- so we
+            # failed to even reach a place that could encompass origin.
+            # no intersection / exit early
             return False
 
-        s.append(a)
-        print(s)
-        break
+        points.append(a)
+        print(points)
 
-        # s, d, contains_origin = NearestSimplex(s)
-        # if contains_origin:
-        #    accept
-        #
+        points, direction, contains_origin = nearest_simplex(points, direction)
+        if contains_origin:
+            print("Collision detected.")
+            return True
 
 
 if __name__ == "__main__":
