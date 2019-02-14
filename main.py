@@ -106,6 +106,14 @@ def dot_product(a, b):
     return a.x * b.x + a.y * b.y + a.z * b.z
 
 
+def triple_product(a, b, c):
+    ac = a.x * c.x + a.y * c.y + a.z * c.z  # perform a.dot(c)
+    bc = b.x * c.x + b.y * c.y + b.z * c.z  # perform b.dot(c)
+
+    # perform b * a.dot(c) - a * b.dot(c)
+    return Vec3(b.x * ac - a.x * bc, b.y * ac - a.y * bc, b.z * ac - a.z * bc)
+
+
 def cross_product(a, b):
     """Calculate a vector that is at right angles to two points passed in."""
     return Vec3(
@@ -137,7 +145,6 @@ def support(shape, direction):
 def nearest_simplex(simplex, direction):
     """
     A simplex is an array of points that may be represented as a:
-    - 1 point = vert
     - 2 points = line
     - 3 points = triangle
     - 4 points = tetrahedron
@@ -147,24 +154,49 @@ def nearest_simplex(simplex, direction):
     :return: updated points, updated direction and a bool of True if  shape contains origin.
     """
 
-    # __ Two Point Simplex
+    # __ Two Point Simplex (Smallest case we have to deal with)
     if len(simplex) == 2:
-        a, b = simplex
-        ao = -a
-        ab = b - a
+        b, a = simplex
+        ao = -a  # origin - a
+        ab = b - a  # old position - a
+        print("A : ", a)
+        print("AO: ", ao)
+        print("AB: ", ab)
+        print("Dot Product of AB->AO: ", dot_product(ab, ao))
 
         if dot_product(ab, ao) >= 0:
-            direction = cross_product(ab, ao)
-
+            direction = triple_product(ab, ao, ab)
         else:
             simplex.pop(0)
             direction = ao
 
     # __ Three point simplex
-    else:
-        # need to implement
-        pass
+    elif len(simplex) == 3:
+        c, b, a = simplex
+        ao = -a
+        ab = b - a  # from point A to B
+        ac = c - a  # from point A to C
+        print("AB: ", ab)
+        print("AC: ", ac)
 
+        ac_perp = triple_product(ab, ac, ac)
+
+        if dot_product(ac_perp, ao) >= 0:
+            direction = ac_perp
+
+        else:
+            ab_perp = triple_product(ac, ab, ab)
+            if dot_product(ab_perp, ao) < 0:
+                return simplex, direction, True
+            # simplex update?
+            direction = ab_perp
+
+    # __ Four point simplex - Tetrahedron
+    elif len(simplex) == 4:
+        print("What do I do here?")
+        print(simplex)
+
+    print("Direction:", direction)
     return simplex, direction, False
 
 
@@ -188,6 +220,7 @@ def gjk_intersection(p, q, initial_axis):
         a = support(p, direction) - support(q, -direction)
 
         if dot_product(a, direction) < 0:
+            print("Collision NOT detected.")
             return False
 
         simplex.append(a)
@@ -197,12 +230,14 @@ def gjk_intersection(p, q, initial_axis):
             print("Collision detected.")
             return True
 
+    print("Failed to find an answer.")
+
 
 if __name__ == "__main__":
-    corner1 = Vec3(0.0, 0.0, 0.0)
-    corner2 = Vec3(1.0, 1.0, 1.0)
+    corner1 = Vec3(1.0, 2.0, 2.0)
+    corner2 = Vec3(4.0, 5.0, 5.0)
 
-    direction = Vec3(0.0, 0.0, 1.0)
+    direction = Vec3(34.1, 0.2, 1.0)
     print("[Direction]: {} and its negative: {}".format(direction, -direction))
 
     cube_01 = Cube(corner1, corner2)
