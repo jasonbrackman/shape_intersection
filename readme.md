@@ -7,14 +7,14 @@ Experimenting with shapes and if they intersect with each other.
 3. Siggraph 2017 Related: https://www.youtube.com/watch?v=NcivnQ02rGw
 
 # The Algorithm:
-  -- Where:
-      -> Q - Simplex Set - list of points - in this case 1 to 4
-      -> d - direction
-      -> C - shape (1, 2, or 3 dimensions)
-      -> P - point
-      -> CH() - Convex Hull()
-      -> Sc() - Subset of Shape
-      -> V = Most extreme point of C in a particular direction
+  -- Where:  
+      -> Q - Simplex Set - list of points - in this case 1 to 4  
+      -> d - direction  
+      -> C - shape (1, 2, or 3 dimensions)  
+      -> P - point  
+      -> CH() - Convex Hull()  
+      -> Sc() - Subset of Shape  
+      -> V = Most extreme point of C in a particular direction  
       
 1. Initialize the simplex set Q with up to d+1 points from C (in d dimensions)
 2. Compute point P of minimum norm in CH(Q)
@@ -52,7 +52,7 @@ A. The cross product calculates the direction from the simplex to origin.
 
 Q. Do we need to calculate for a simplex of zero or 1?  
 A. The algorithm will always calculate on a minimum of two points since its primed with the first item before entering
-the algorithm's loop.  And upon entering the loop a second item is added.  
+the algorithm's loop.  And upon entering the loop a second item is added before any work with the simplex starts.  
 
 Q. Do we need to calculate for a simplex of greater than 4 (tetrahedron?)  
 A. ??
