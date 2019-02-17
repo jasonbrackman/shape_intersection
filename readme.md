@@ -55,4 +55,7 @@ A. The algorithm will always calculate on a minimum of two points since its prim
 the algorithm's loop.  And upon entering the loop a second item is added before any work with the simplex starts.  
 
 Q. Do we need to calculate for a simplex of greater than 4 (tetrahedron?)  
-A. ??
+A. This does not appear to be required.   If the origin is behind the faces of the tetrahedron then it has surrounded
+the origin.  If it isn't -- then the origin must be in front of one of the other faces -- so *i think* it is safe to throw
+away the vert creating the furthest faces from origin and add a direction to add a new vert. So we won't ever grow larger than 
+than a simplex of a tetrahedron.
