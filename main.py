@@ -265,12 +265,11 @@ def test_01_no_collision():
     cube_01 = Cube(Vec3(0, 0, 0), Vec3(0.5, 0.5, 0.5))
     cube_02 = Cube(Vec3(0.8, 0.8, 0.8), Vec3(1, 1, 1))
 
-    # A random starting direction
     direction = Vec3(3.1, 0.2, 1.0)
 
     result = gjk_intersection(cube_01, cube_02, direction)
 
-    print("Test 1: {}".format("passed" if result is False else "FAILED"))
+    print("[{}] test_01_no_collision".format("passed" if result is False else "FAILED"))
 
 
 def test_02_collision():
@@ -278,15 +277,14 @@ def test_02_collision():
     cube_01 = Cube(Vec3(0, 0, 0), Vec3(0.5, 0.5, 0.5))
     cube_02 = Cube(Vec3(0.1, 0.1, 0.1), Vec3(1, 1, 1))
 
-    # A random starting direction
     direction = Vec3(1.0, 0.0, 0.0)
 
     result = gjk_intersection(cube_01, cube_02, direction)
 
-    print("Test 2: {}".format("passed" if result is True else "FAILED"))
+    print("[{}] test_02_collision".format("passed" if result is True else "FAILED"))
 
 
-def test_03_collision():
+def test_03_collision_lower_corner_verts_in_same_position():
     """Note that the starting point edge is touching and at 0,0,0."""
     # Create Test cubes
     cube_01 = Cube(Vec3(0, 0, 0), Vec3(0.5, 0.5, 0.5))
@@ -297,33 +295,43 @@ def test_03_collision():
 
     result = gjk_intersection(cube_01, cube_02, direction)
 
-    print("Test 3: {}".format("passed" if result is True else "FAILED"))
+    print(
+        "[{}] test_03_collision_lower_corner_verts_in_same_position".format(
+            "passed" if result is True else "FAILED"
+        )
+    )
 
 
-def test_04_collision():
+def test_04_collision_with_with_x_positive_direction():
     # Create Test cubes
     cube_01 = Cube(Vec3(0, 0, 0), Vec3(1, 1, 1))
     cube_02 = Cube(Vec3(0.2, 0, 0), Vec3(1, 1, 1))
 
-    # A random starting direction
     direction = Vec3(1.0, 0.0, 0.0)
 
     result = gjk_intersection(cube_01, cube_02, direction)
 
-    print("Test 4: {}".format("passed" if result is True else "FAILED"))
+    print(
+        "[{}] test_04_collision_with_with_x_positive_direction".format(
+            "passed" if result is True else "FAILED"
+        )
+    )
 
 
-def test_05_collision():
+def test_05_collision_edges_touching():
     # Create Test cubes
     cube_01 = Cube(Vec3(0, 0, 0), Vec3(1, 1, 1))
     cube_02 = Cube(Vec3(1, 1, 1), Vec3(1.2, 1.2, 1.2))
 
-    # A random starting direction
     direction = Vec3(0.0, 0.1, 2.0)
 
     result = gjk_intersection(cube_01, cube_02, direction)
 
-    print("Test 5: {}".format("passed" if result is True else "FAILED"))
+    print(
+        "[{}] test_05_collision_edges_touching".format(
+            "passed" if result is True else "FAILED"
+        )
+    )
 
 
 def test_06_move_cube():
@@ -333,13 +341,13 @@ def test_06_move_cube():
 
     index, result = -1, False
     for index in range(100):
-        cube_01.translate(0, 0.1, 0)
+        cube_01.translate(0, 0.3, 0)
         result = gjk_intersection(cube_01, cube_02, direction)
         if result:
             break
 
     print(
-        "Test 5: {} in {} iterations".format(
+        "[{}] test_06_move_cube() in {} iterations".format(
             "passed" if result is True else "FAILED", index + 1
         )
     )
@@ -348,7 +356,7 @@ def test_06_move_cube():
 if __name__ == "__main__":
     test_01_no_collision()
     test_02_collision()
-    test_03_collision()
-    test_04_collision()
-    test_05_collision()
+    test_03_collision_lower_corner_verts_in_same_position()
+    test_04_collision_with_with_x_positive_direction()
+    test_05_collision_edges_touching()
     test_06_move_cube()
