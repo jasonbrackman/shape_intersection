@@ -17,6 +17,9 @@ class Vec3:
     def __sub__(self, other):
         return Vec3(self.x - other.x, self.y - other.y, self.z - other.z)
 
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y and self.z == other.z
+
     @property
     def x(self):
         return self._x
@@ -71,13 +74,19 @@ class Cube:
         self.points.append(Vec3(x2 + x1, y2 + y1, z2))
         self.points.append(Vec3(x2, y2 + y1, z2))
 
+    def translate(self, x, y, z):
+        for point in self.points:
+            point.x += x
+            point.y += y
+            point.z += z
 
-def dot_product(a, b):
+
+def dot(a, b):
     """Calculate the magnitude of one vector multiplied by another."""
     return a.x * b.x + a.y * b.y + a.z * b.z
 
 
-def cross_product(a, b):
+def cross(a, b):
     """Calculate a vector that is at right angles to two points passed in."""
     return Vec3(
         a.y * b.z - a.z * b.y,  # i
@@ -97,7 +106,7 @@ def support(shape, direction):
     furthest_in_direction = None
     result = float("-inf")
     for point in shape.points:
-        product = dot_product(point, direction)
+        product = dot(point, direction)
         if product > result:
             result = product
             furthest_in_direction = point
@@ -119,7 +128,7 @@ def nearest_simplex(simplex, d):
 
     # __ Two Point Simplex: Line
     if len(simplex) == 2:
-        a, b = simplex
+        b, a = simplex
 
         # a was found in a direction away from origin - its opposite is towards Origin.
         ao = -a
@@ -133,39 +142,82 @@ def nearest_simplex(simplex, d):
         #   - we must be going in the wrong direction
         #   - make the direction the opposite of what we started with
         #   - drop the first entry since the origin is not in that direction and we don't want to recalc later.
-        if dot_product(ab, ao) >= 0:
-            d = cross_product(cross_product(ab, ao), ab)
+        if dot(ab, ao) >= 0:
+            d = cross(cross(ab, ao), ab)
         else:
             simplex.pop(0)
             d = ao
 
     # __ Three point simplex: Triangle
     elif len(simplex) == 3:
-        a, b, c = simplex
+        c, b, a = simplex
         ao = -a
         ab = b - a  # from point A to B
         ac = c - a  # from point A to C
 
-        ac_perp = cross_product(cross_product(ab, ac), ac)
-
-        if dot_product(ac_perp, ao) >= 0:
-            d = ac_perp
-
+        abc = cross(ab, ac)  # Compute the triangle's normal
+        if dot(abc, ao) >= 0:
+            if dot(ac, ao) >= 0:
+                simplex = [a, c]
+                d = cross(cross(ac, ao), ac)
+            else:
+                if dot(ab, ao) >= 0:
+                    simplex = [a, b]
+                    d = cross(cross(ab, ao), ab)
+                else:
+                    simplex = [a]
+                    d = ao
         else:
-            ab_perp = cross_product(cross_product(ac, ab), ab)
-            if dot_product(ab_perp, ao) < 0:
-                return simplex, d, True
-            # simplex update?
-            d = ab_perp
+            if dot(cross(ab, abc), ao) >= 0:
+                if dot(ab, ao) >= 0:
+                    simplex = [a, b]
+                    d = cross(cross(ab, ao), ab)
+                else:
+                    simplex = [a]
+                    d = ao
+            else:
+                if dot(abc, ao) > 0:
+                    simplex = [a, b, c]
+                    d = abc
+                else:
+                    simplex = [a, c, b]
+                    d = -abc
 
-        print("in a simplex3")
+        # ac_perp = cross_product(cross_product(ab, ao), ac)
+        # if dot_product(ac_perp, ao) >= 0:
+        #     simplex = [a, c]
+        #     d = ac_perp
+        #
+        # else:
+        #     ab_perp = cross_product(cross_product(ac, ao), ab)
+        #     if dot_product(ab_perp, ao) < 0:
+        #         return simplex, d, True
+        #     # simplex update?
+        #     d = ab_perp
+
+        # print("in a simplex3")
 
     # __ Four point simplex: Tetrahedron
     elif len(simplex) == 4:
-        print("What do I do here?")
+        d, c, b, a = simplex
+
+        ao = -a
+
+        ab = b - a
+        ac = c - a
+        ad = d - a
+
+        abc = cross(ab, ac)
+        acd = cross(ac, ad)
+        adb = cross(ad, ab)
+
+        if dot(abc, ao) >= 0 and dot(acd, ao) >= 0 and dot(adb, ao) >= 0:
+            # must be behind all three faces so we have surrounded the origin!
+            return simplex, d, True
+
         print(simplex)
 
-    print("Direction:", d)
+    # print("Direction:", d)
     return simplex, d, False
 
 
@@ -185,35 +237,118 @@ def gjk_intersection(p, q, initial_axis):
     simplex = [a]
     direction = -a
 
-    for _ in range(10):  # cube only has 8 verts - should pass/fail before ten
+    for _ in range(10000):  # cube only has 8 verts - should pass/fail before ten
         a = support(p, direction) - support(q, -direction)
 
-        if dot_product(a, direction) < 0:
-            print("Collision NOT detected.")
+        if dot(a, direction) < 0:
+            # print("Collision NOT detected.")
             return False
+
+        if a == direction:
+            # print("Direction and vert in the same location -- we must have origin?")
+            return True
 
         simplex.append(a)
 
         simplex, direction, contains_origin = nearest_simplex(simplex, direction)
         if contains_origin:
-            print("Collision detected.")
+            # print("Collision detected using the following simplex: {}".format(simplex))
             return True
 
-    print("Failed to find an answer.")
+    # print("Failed to find an answer.")
+
+    return False
+
+
+def test_01_no_collision():
+    # Create Test cubes
+    cube_01 = Cube(Vec3(0, 0, 0), Vec3(0.5, 0.5, 0.5))
+    cube_02 = Cube(Vec3(0.8, 0.8, 0.8), Vec3(1, 1, 1))
+
+    # A random starting direction
+    direction = Vec3(3.1, 0.2, 1.0)
+
+    result = gjk_intersection(cube_01, cube_02, direction)
+
+    print("Test 1: {}".format("passed" if result is False else "FAILED"))
+
+
+def test_02_collision():
+    # Create Test cubes
+    cube_01 = Cube(Vec3(0, 0, 0), Vec3(0.5, 0.5, 0.5))
+    cube_02 = Cube(Vec3(0.1, 0.1, 0.1), Vec3(1, 1, 1))
+
+    # A random starting direction
+    direction = Vec3(1.0, 0.0, 0.0)
+
+    result = gjk_intersection(cube_01, cube_02, direction)
+
+    print("Test 2: {}".format("passed" if result is True else "FAILED"))
+
+
+def test_03_collision():
+    """Note that the starting point edge is touching and at 0,0,0."""
+    # Create Test cubes
+    cube_01 = Cube(Vec3(0, 0, 0), Vec3(0.5, 0.5, 0.5))
+    cube_02 = Cube(Vec3(0, 0, 0), Vec3(1, 1, 1))
+
+    # A random starting direction
+    direction = Vec3(1.0, 0.0, 0.0)
+
+    result = gjk_intersection(cube_01, cube_02, direction)
+
+    print("Test 3: {}".format("passed" if result is True else "FAILED"))
+
+
+def test_04_collision():
+    # Create Test cubes
+    cube_01 = Cube(Vec3(0, 0, 0), Vec3(1, 1, 1))
+    cube_02 = Cube(Vec3(0.2, 0, 0), Vec3(1, 1, 1))
+
+    # A random starting direction
+    direction = Vec3(1.0, 0.0, 0.0)
+
+    result = gjk_intersection(cube_01, cube_02, direction)
+
+    print("Test 4: {}".format("passed" if result is True else "FAILED"))
+
+
+def test_05_collision():
+    # Create Test cubes
+    cube_01 = Cube(Vec3(0, 0, 0), Vec3(1, 1, 1))
+    cube_02 = Cube(Vec3(1, 1, 1), Vec3(1.2, 1.2, 1.2))
+
+    # A random starting direction
+    direction = Vec3(0.0, 0.1, 2.0)
+
+    result = gjk_intersection(cube_01, cube_02, direction)
+
+    print("Test 5: {}".format("passed" if result is True else "FAILED"))
+
+
+def test_06_move_cube():
+    cube_01 = Cube(Vec3(0, 0, 0), Vec3(1, 1, 1))
+    cube_02 = Cube(Vec3(0, 1.5, 0), Vec3(2, 2, 2))
+    direction = Vec3(0.0, 0.1, 2.0)
+
+    index, result = -1, False
+    for index in range(100):
+        cube_01.translate(0, 0.1, 0)
+        result = gjk_intersection(cube_01, cube_02, direction)
+        if result:
+            break
+
+    print(
+        "Test 5: {} in {} iterations".format(
+            "passed" if result is True else "FAILED", index + 1
+        )
+    )
 
 
 if __name__ == "__main__":
-
-    direction = Vec3(34.1, 0.2, 1.0)
-    print("[Direction]: {} and its negative: {}".format(direction, -direction))
-
-    cube_01 = Cube(Vec3(0, 0, 0), Vec3(0.5, 0.5, 0.5))
-    cube_02 = Cube(Vec3(0.2, 0.2, 0.2), Vec3(1, 1, 1))
-
-    i = support(cube_01, direction)
-    print("[Cube_01] Highest Dot Product Point (+ direction): {}".format(i))
-
-    j = support(cube_02, -direction)
-    print("[Cube_02] Highest Dot Product Point (- direction): {}".format(j))
-
-    gjk_intersection(cube_01, cube_02, direction)
+    test_01_no_collision()
+    test_02_collision()
+    test_03_collision()
+    test_04_collision()
+    test_05_collision()
+    test_06_move_cube()
