@@ -48,7 +48,8 @@ information can be used to throw away the first point (which should be the furth
 should be now closer to the origin. Looping again would grab a new point and |B||C| . |origin| should now be positive.
 
 Q. What does the cross product do here?  
-A. The cross product calculates the direction from the simplex to origin.
+A. The cross product calculates the direction from the simplex to origin.  This is not the angle, but the perpendicular
+ line from the simplex to the origin.
 
 Q. Do we need to calculate for a simplex of zero or 1?  
 A. The algorithm will always calculate on a minimum of two points since its primed with the first item before entering

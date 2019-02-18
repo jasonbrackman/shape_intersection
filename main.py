@@ -215,6 +215,7 @@ def nearest_simplex(simplex, d):
             # must be behind all three faces so we have surrounded the origin!
             return simplex, d, True
 
+        # This has never been hit yet in my tests -- I need a test case.
         print(simplex)
 
     # print("Direction:", d)
