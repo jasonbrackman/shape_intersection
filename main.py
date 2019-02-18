@@ -64,21 +64,30 @@ class Cube:
 
         # create first set of points (a side)
         self.points.append(Vec3(x1, y1, z1))
-        self.points.append(Vec3(x1 + x2, y1, z1))
-        self.points.append(Vec3(x1 + x2, y1 + y2, z1))
-        self.points.append(Vec3(x1, y1 + y2, z1))
+        self.points.append(Vec3(x1 + abs(x2), y1, z1))
+        self.points.append(Vec3(x1 + abs(x2), y1 + abs(y2), z1))
+        self.points.append(Vec3(x1, y1 + abs(y2), z1))
 
         # create second set of points
         self.points.append(Vec3(x2, y2, z2))
-        self.points.append(Vec3(x2 + x1, y2, z2))
-        self.points.append(Vec3(x2 + x1, y2 + y1, z2))
-        self.points.append(Vec3(x2, y2 + y1, z2))
+        self.points.append(Vec3(x2 + abs(x1), y2, z2))
+        self.points.append(Vec3(x2 + abs(x1), y2 + abs(y1), z2))
+        self.points.append(Vec3(x2, y2 + abs(y1), z2))
 
     def translate(self, x, y, z):
         for point in self.points:
             point.x += x
             point.y += y
             point.z += z
+
+    def rotate(self, degrees, direction):
+        """
+
+        :param degrees: in radians
+        :param direction: x, y, z value
+        :return:
+        """
+        pass
 
 
 def dot(a, b):
@@ -156,7 +165,10 @@ def nearest_simplex(simplex, d):
         ac = c - a  # from point A to C
 
         abc = cross(ab, ac)  # Compute the triangle's normal
-        if dot(abc, ao) >= 0:
+
+        # Test in one direction of the face
+        if dot(cross(abc, ac), ao) >= 0:
+
             if dot(ac, ao) >= 0:
                 simplex = [a, c]
                 d = cross(cross(ac, ao), ac)
@@ -167,6 +179,8 @@ def nearest_simplex(simplex, d):
                 else:
                     simplex = [a]
                     d = ao
+
+        # Test in the other direction ...
         else:
             if dot(cross(ab, abc), ao) >= 0:
                 if dot(ab, ao) >= 0:
@@ -182,20 +196,6 @@ def nearest_simplex(simplex, d):
                 else:
                     simplex = [a, c, b]
                     d = -abc
-
-        # ac_perp = cross_product(cross_product(ab, ao), ac)
-        # if dot_product(ac_perp, ao) >= 0:
-        #     simplex = [a, c]
-        #     d = ac_perp
-        #
-        # else:
-        #     ab_perp = cross_product(cross_product(ac, ao), ab)
-        #     if dot_product(ab_perp, ao) < 0:
-        #         return simplex, d, True
-        #     # simplex update?
-        #     d = ab_perp
-
-        # print("in a simplex3")
 
     # __ Four point simplex: Tetrahedron
     elif len(simplex) == 4:
@@ -243,10 +243,10 @@ def gjk_intersection(p, q, initial_axis):
         if dot(a, direction) < 0:
             # print("Collision NOT detected.")
             return False
-
-        if a == direction:
-            # print("Direction and vert in the same location -- we must have origin?")
-            return True
+        #
+        # if a == direction:
+        #     # print("Direction and vert in the same location -- we must have origin?")
+        #     return True
 
         simplex.append(a)
 
@@ -255,7 +255,7 @@ def gjk_intersection(p, q, initial_axis):
             # print("Collision detected using the following simplex: {}".format(simplex))
             return True
 
-    # print("Failed to find an answer.")
+    print("Failed to find an answer.")
 
     return False
 
@@ -265,7 +265,7 @@ def test_01_no_collision():
     cube_01 = Cube(Vec3(0, 0, 0), Vec3(0.5, 0.5, 0.5))
     cube_02 = Cube(Vec3(0.8, 0.8, 0.8), Vec3(1, 1, 1))
 
-    direction = Vec3(3.1, 0.2, 1.0)
+    direction = Vec3(0.1, 0.2, 1.0)
 
     result = gjk_intersection(cube_01, cube_02, direction)
 
@@ -284,14 +284,14 @@ def test_02_collision():
     print("[{}] test_02_collision".format("passed" if result is True else "FAILED"))
 
 
-def test_03_collision_lower_corner_verts_in_same_position():
+def test_03_collision_with_cubes_in_negative_space():
     """Note that the starting point edge is touching and at 0,0,0."""
     # Create Test cubes
-    cube_01 = Cube(Vec3(0, 0, 0), Vec3(0.5, 0.5, 0.5))
-    cube_02 = Cube(Vec3(0, 0, 0), Vec3(1, 1, 1))
+    cube_01 = Cube(Vec3(-0.5, -0.5, -0.5), Vec3(0.5, 0.5, 0.5))
+    cube_02 = Cube(Vec3(-0.2, -0.2, -0.2), Vec3(0.2, 0.2, 0.2))
 
     # A random starting direction
-    direction = Vec3(1.0, 0.0, 0.0)
+    direction = Vec3(0.0, 0.2, 0.0)
 
     result = gjk_intersection(cube_01, cube_02, direction)
 
@@ -305,7 +305,7 @@ def test_03_collision_lower_corner_verts_in_same_position():
 def test_04_collision_with_with_x_positive_direction():
     # Create Test cubes
     cube_01 = Cube(Vec3(0, 0, 0), Vec3(1, 1, 1))
-    cube_02 = Cube(Vec3(0.2, 0, 0), Vec3(1, 1, 1))
+    cube_02 = Cube(Vec3(0.2, 0.2, 0.2), Vec3(1, 1, 1))
 
     direction = Vec3(1.0, 0.0, 0.0)
 
@@ -320,10 +320,10 @@ def test_04_collision_with_with_x_positive_direction():
 
 def test_05_collision_edges_touching():
     # Create Test cubes
-    cube_01 = Cube(Vec3(0, 0, 0), Vec3(1, 1, 1))
+    cube_01 = Cube(Vec3(1, 1, 1), Vec3(1.1, 1.1, 1.1))
     cube_02 = Cube(Vec3(1, 1, 1), Vec3(1.2, 1.2, 1.2))
 
-    direction = Vec3(0.0, 0.1, 2.0)
+    direction = Vec3(0.0, 0.1, 1.0)
 
     result = gjk_intersection(cube_01, cube_02, direction)
 
@@ -356,7 +356,7 @@ def test_06_move_cube():
 if __name__ == "__main__":
     test_01_no_collision()
     test_02_collision()
-    test_03_collision_lower_corner_verts_in_same_position()
+    test_03_collision_with_cubes_in_negative_space()
     test_04_collision_with_with_x_positive_direction()
     test_05_collision_edges_touching()
     test_06_move_cube()
