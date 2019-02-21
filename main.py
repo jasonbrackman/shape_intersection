@@ -55,24 +55,38 @@ class Cube:
     """
 
     def __init__(self, corner1, corner2):
+
+        self.origin = Vec3(
+            (corner1.x + corner2.x) / 2,
+            (corner1.y + corner2.y) / 2,
+            (corner1.z + corner2.z) / 2,
+        )
+
         self.points = list()
         self.create_points(corner1, corner2)
 
+    @classmethod
+    def new(cls):
+        return Cube(Vec3(0, 0, 0), Vec3(1, 1, 1))
+
     def create_points(self, corner1, corner2):
-        x1, y1, z1 = corner1
-        x2, y2, z2 = corner2
+        x_distance = abs(corner1.x) + abs(corner2.x)
+        y_distance = abs(corner1.y) + abs(corner2.y)
+        # ignoring z as it is the min/max for the bottom/top
+        # z_distance = abs(corner1.z) + abs(corner2.z)
+        self.points.append(corner1)
+        self.points.append(Vec3(corner1.x, corner1.y + y_distance, corner1.z))
+        self.points.append(Vec3(corner1.x + x_distance, corner1.y, corner1.z))
+        self.points.append(
+            Vec3(corner1.x + x_distance, corner1.y + y_distance, corner1.z)
+        )
 
-        # create first set of points (a side)
-        self.points.append(Vec3(x1, y1, z1))
-        self.points.append(Vec3(x1 + abs(x2), y1, z1))
-        self.points.append(Vec3(x1 + abs(x2), y1 + abs(y2), z1))
-        self.points.append(Vec3(x1, y1 + abs(y2), z1))
-
-        # create second set of points
-        self.points.append(Vec3(x2, y2, z2))
-        self.points.append(Vec3(x2 + abs(x1), y2, z2))
-        self.points.append(Vec3(x2 + abs(x1), y2 + abs(y1), z2))
-        self.points.append(Vec3(x2, y2 + abs(y1), z2))
+        self.points.append(
+            Vec3(corner2.x - x_distance, corner2.y - y_distance, corner2.z)
+        )
+        self.points.append(Vec3(corner2.x - x_distance, corner2.y, corner2.z))
+        self.points.append(corner2)
+        self.points.append(Vec3(corner2.x, corner2.y - y_distance, corner2.z))
 
     def translate(self, x, y, z):
         for point in self.points:
@@ -88,6 +102,17 @@ class Cube:
         :return:
         """
         pass
+
+    def get_cube_origin(self):
+
+        x, y, z = 0, 0, 0
+
+        for point in self.points:
+            x += point.x
+            y += point.y
+            z += point.z
+
+        return Vec3(x / 8, y / 8, z / 8)
 
 
 def dot(a, b):
@@ -216,7 +241,7 @@ def nearest_simplex(simplex, d):
             return simplex, d, True
 
         # This has never been hit yet in my tests -- I need a test case.
-        print(simplex)
+        # print(simplex)
 
     # print("Direction:", d)
     return simplex, d, False
@@ -256,7 +281,7 @@ def gjk_intersection(p, q, initial_axis):
             # print("Collision detected using the following simplex: {}".format(simplex))
             return True
 
-    print("Failed to find an answer.")
+    # print("Failed to find an answer.")
 
     return False
 
@@ -336,13 +361,13 @@ def test_05_collision_edges_touching():
 
 
 def test_06_move_cube():
-    cube_01 = Cube(Vec3(0, 0, 0), Vec3(1, 1, 1))
-    cube_02 = Cube(Vec3(0, 1.5, 0), Vec3(2, 2, 2))
-    direction = Vec3(0.0, 0.1, 2.0)
+    cube_01 = Cube(Vec3(0, 0, 5), Vec3(1, 1, 6))
+    cube_02 = Cube(Vec3(0, 0, 1), Vec3(1, 1, 4))
 
+    direction = Vec3(0.0, 0.1, 2.0)
     index, result = -1, False
-    for index in range(100):
-        cube_01.translate(0, 0.3, 0)
+    for index in range(1_000_000_000):
+        cube_02.translate(0, 0, 0.001)
         result = gjk_intersection(cube_01, cube_02, direction)
         if result:
             break
@@ -361,3 +386,8 @@ if __name__ == "__main__":
     test_04_collision_with_with_x_positive_direction()
     test_05_collision_edges_touching()
     test_06_move_cube()
+
+    # cube = Cube.new()
+    # for p in cube.points:
+    #     print(p)
+    # print(cube.origin)
